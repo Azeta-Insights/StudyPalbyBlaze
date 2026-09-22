@@ -9,6 +9,7 @@ import {
   AlertCircle,
   X,
   Search,
+  Cloud,
 } from 'lucide-react';
 import { UserStreak, QuizAttempt, TopicStat, SubjectInfo } from '../types';
 import { BlazeMascot } from '../components/BlazeMascot';
@@ -17,6 +18,7 @@ import { StreakBanner } from '../components/StreakBanner';
 import { FrostedGlassCard } from '../components/FrostedGlassCard';
 import { StorageService } from '../services/storage';
 import { SoundService } from '../services/sound';
+import { useFirebase } from '../context/FirebaseContext';
 
 interface HomeScreenProps {
   userStreak: UserStreak;
@@ -39,6 +41,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onOpenProgress,
   onOpenPremium,
 }) => {
+  const { user, isSyncing } = useFirebase();
   const [comingSoonSubject, setComingSoonSubject] = useState<SubjectInfo | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -99,9 +102,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* 1. Frosted Glass Top Header */}
       <div className="flex items-center justify-between pt-1">
         <div>
-          <span className="text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-            STUDYPAL BY BLAZE
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold tracking-widest text-slate-400 uppercase">
+              STUDYPAL BY BLAZE
+            </span>
+            {user && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-semibold">
+                <Cloud className="w-2.5 h-2.5" />
+                <span>{isSyncing ? 'Syncing...' : 'Cloud Synced'}</span>
+              </span>
+            )}
+          </div>
           <h1 className="text-2xl font-black text-white tracking-tight">
             Hello, Scholar! 👋
           </h1>

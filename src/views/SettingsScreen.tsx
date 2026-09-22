@@ -15,11 +15,17 @@ import {
   ChevronDown,
   ChevronUp,
   BookOpen,
+  Cloud,
+  RefreshCw,
+  LogOut,
+  LogIn,
+  User as UserIcon,
 } from 'lucide-react';
 import { UserStreak } from '../types';
 import { StorageService } from '../services/storage';
 import { SoundService } from '../services/sound';
 import { BlazeMascot } from '../components/BlazeMascot';
+import { useFirebase } from '../context/FirebaseContext';
 
 interface SettingsScreenProps {
   userStreak: UserStreak;
@@ -37,6 +43,33 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [hapticsEnabled, setHapticsEnabled] = useState(() => SoundService.isHapticsEnabled());
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showProvenance, setShowProvenance] = useState(false);
+  const { user, isSyncing, signIn, signOut, syncNow } = useFirebase();
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isSigningIn, setIsSigningIn] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    if (isSigningIn) return;
+    setAuthError(null);
+    setIsSigningIn(true);
+    try {
+      await signIn();
+    } catch (err: any) {
+      if (
+        err?.code === 'auth/popup-closed-by-user' ||
+        err?.code === 'auth/cancelled-popup-request'
+      ) {
+        // User closed or dismissed the login dialog voluntarily
+        return;
+      }
+      if (err?.code === 'auth/popup-blocked') {
+        setAuthError('Sign-in popup was blocked by your browser. Please allow popups for this site and try again.');
+        return;
+      }
+      setAuthError('Could not sign in with Google. Please try again.');
+    } finally {
+      setIsSigningIn(false);
+    }
+  };
 
   const exams = [
     { id: 'jamb', name: 'JAMB UTME', note: 'Computer-Based Test for Universities' },
@@ -83,6 +116,77 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </button>
         <h2 className="text-base font-bold text-white">Settings & Preferences</h2>
         <div className="w-8" />
+      </div>
+
+      {/* Cloud Account & Backup (Firebase) */}
+      <div className="p-4 rounded-2xl glass-card border border-white/10 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center border border-orange-500/30">
+              <Cloud className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>Cloud Study Account</span>
+                {user && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Synced
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] text-slate-400">
+                {user
+                  ? user.email || user.displayName || 'Google Account Connected'
+                  : 'Back up your streaks and scores across devices'}
+              </div>
+            </div>
+          </div>
+
+          {user ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={syncNow}
+                disabled={isSyncing}
+                title="Sync now to cloud"
+                className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition active:scale-95 disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-orange-400' : ''}`} />
+              </button>
+              <button
+                onClick={signOut}
+                title="Sign out"
+                className="p-2 rounded-xl bg-slate-800 text-rose-400 hover:bg-rose-500/20 transition active:scale-95"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={isSigningIn}
+              className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95"
+            >
+              {isSigningIn ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Connecting...</span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Connect</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {authError && (
+          <div className="text-[11px] text-rose-400 bg-rose-500/10 p-2 rounded-xl border border-rose-500/20">
+            {authError}
+          </div>
+        )}
       </div>
 
       {/* Target Exam Selection */}

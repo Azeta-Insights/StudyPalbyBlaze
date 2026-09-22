@@ -1,0 +1,129 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Health / connection test document allowed for public read
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Common security primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation for UserProfile
+    function isValidUserProfile(data) {
+      return data.id is string && data.id == request.auth.uid
+        && data.targetExam is string && data.targetExam.size() <= 32
+        && data.currentStreak is number && data.currentStreak >= 0
+        && data.bestStreak is number && data.bestStreak >= 0
+        && (!('targetScore' in data) || data.targetScore is number)
+        && (!('email' in data) || (data.email is string && data.email.size() <= 256))
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('lastPracticeDate' in data) || (data.lastPracticeDate is string && data.lastPracticeDate.size() <= 32))
+        && (!('isTrialUnlocked' in data) || data.isTrialUnlocked is bool)
+        && (!('trialStartDate' in data) || data.trialStartDate is number)
+        && (!('trialEndDate' in data) || data.trialEndDate is number)
+        && (!('isSubscribed' in data) || data.isSubscribed is bool)
+        && (!('hasSeenOnboarding' in data) || data.hasSeenOnboarding is bool);
+    }
+
+    // Validation for QuizAttempt
+    function isValidQuizAttempt(data, userId) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == userId
+        && data.examType is string && data.examType.size() <= 32
+        && data.subject is string && data.subject.size() <= 64
+        && data.mode is string && data.mode.size() <= 32
+        && data.score is number && data.score >= 0
+        && data.totalQuestions is number && data.totalQuestions > 0
+        && data.timestamp is number
+        && (!('durationSeconds' in data) || (data.durationSeconds is number && data.durationSeconds >= 0))
+        && (!('isPerfectScore' in data) || data.isPerfectScore is bool);
+    }
+
+    // Validation for SpacedItem
+    function isValidSpacedItem(data, userId) {
+      return data.questionId is string && data.questionId.size() <= 128
+        && data.userId is string && data.userId == userId
+        && data.subject is string && data.subject.size() <= 64
+        && data.repetition is number && data.repetition >= 0
+        && data.intervalDays is number && data.intervalDays >= 0
+        && data.nextReviewTimestamp is number
+        && (!('topic' in data) || data.topic == null || (data.topic is string && data.topic.size() <= 128))
+        && (!('easinessFactor' in data) || data.easinessFactor is number)
+        && (!('lastReviewedTimestamp' in data) || data.lastReviewedTimestamp is number)
+        && (!('reviewCount' in data) || data.reviewCount is number)
+        && (!('correctCount' in data) || data.correctCount is number);
+    }
+
+    // User Profile Document
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().id == userId;
+
+      allow update: if isOwner(userId) && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().id == existing().id;
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // Quiz and Mock Attempts Subcollection
+      match /quizAttempts/{attemptId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(attemptId);
+        allow list: if isOwner(userId) && isValidId(userId);
+
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(attemptId)
+          && isValidQuizAttempt(incoming(), userId)
+          && incoming().userId == userId;
+
+        allow update: if false; // Quiz attempts are immutable historical logs
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(attemptId);
+      }
+
+      // Smart Recall Spaced Memory Items Subcollection
+      match /spacedItems/{questionId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(questionId);
+        allow list: if isOwner(userId) && isValidId(userId);
+
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(questionId)
+          && isValidSpacedItem(incoming(), userId)
+          && incoming().userId == userId;
+
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(questionId)
+          && isValidSpacedItem(incoming(), userId)
+          && incoming().userId == existing().userId;
+
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(questionId);
+      }
+    }
+  }
+}

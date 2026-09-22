@@ -8,6 +8,11 @@ import {
   MilestoneEvent,
   SubjectInfo,
 } from '../types';
+import {
+  syncUserProfileToFirestore,
+  syncQuizAttemptToFirestore,
+  syncSpacedItemToFirestore,
+} from './firebase';
 
 const STORAGE_KEYS = {
   USER_STREAK: 'studypal_user_streak',
@@ -84,6 +89,9 @@ export const StorageService = {
 
   saveUserStreak(streak: UserStreak): void {
     localStorage.setItem(STORAGE_KEYS.USER_STREAK, JSON.stringify(streak));
+    syncUserProfileToFirestore(streak).catch(err => {
+      console.warn('Background Firestore streak sync:', err);
+    });
   },
 
   isPremiumActive(streak: UserStreak): boolean {
@@ -377,6 +385,9 @@ export const StorageService = {
       correctCount: (existing?.correctCount ?? 0) + (isCorrect ? 1 : 0),
     };
     this.saveSpacedItems(spacedMap);
+    syncSpacedItemToFirestore(spacedMap[question.id]).catch(err => {
+      console.warn('Background Firestore spaced item sync:', err);
+    });
 
     // 2. Topic Stats & Mastery tracking
     let milestone: MilestoneEvent | null = null;
@@ -448,6 +459,9 @@ export const StorageService = {
     const attempts = this.getQuizAttempts();
     attempts.unshift(attempt); // latest first
     this.saveQuizAttempts(attempts.slice(0, 50)); // keep last 50
+    syncQuizAttemptToFirestore(attempt).catch(err => {
+      console.warn('Background Firestore attempt sync:', err);
+    });
 
     let milestone: MilestoneEvent | null = null;
     if (isPerfect) {

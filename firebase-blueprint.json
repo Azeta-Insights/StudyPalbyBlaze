@@ -1,0 +1,192 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile, streak progress, and exam target configuration",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "User unique identifier matching auth.uid",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "User display name",
+          "maxLength": 100
+        },
+        "targetExam": {
+          "type": "string",
+          "description": "Target exam identifier such as jamb, waec, neco, post_utme",
+          "maxLength": 32
+        },
+        "targetScore": {
+          "type": "number",
+          "description": "Target score"
+        },
+        "currentStreak": {
+          "type": "number",
+          "description": "Current consecutive study streak in days"
+        },
+        "bestStreak": {
+          "type": "number",
+          "description": "Highest achieved study streak"
+        },
+        "lastPracticeDate": {
+          "type": "string",
+          "description": "ISO date string YYYY-MM-DD of last practice session",
+          "maxLength": 32
+        },
+        "isTrialUnlocked": {
+          "type": "boolean",
+          "description": "Whether the trial is active"
+        },
+        "trialStartDate": {
+          "type": "number",
+          "description": "Timestamp when trial started"
+        },
+        "trialEndDate": {
+          "type": "number",
+          "description": "Timestamp when trial expires"
+        },
+        "isSubscribed": {
+          "type": "boolean",
+          "description": "Whether user has an active premium subscription"
+        },
+        "hasSeenOnboarding": {
+          "type": "boolean",
+          "description": "Whether user completed onboarding"
+        }
+      },
+      "required": ["id", "targetExam", "currentStreak", "bestStreak"]
+    },
+    "QuizAttempt": {
+      "title": "QuizAttempt",
+      "description": "Record of a completed practice quiz, mock exam, or smart review session",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the attempt",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128
+        },
+        "examType": {
+          "type": "string",
+          "description": "Exam type (jamb, waec, neco, post_utme)",
+          "maxLength": 32
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject studied",
+          "maxLength": 64
+        },
+        "mode": {
+          "type": "string",
+          "description": "Quiz mode (practice, mock, spaced_review)",
+          "maxLength": 32
+        },
+        "score": {
+          "type": "number",
+          "description": "Number of correct answers"
+        },
+        "totalQuestions": {
+          "type": "number",
+          "description": "Total number of questions in session"
+        },
+        "durationSeconds": {
+          "type": "number",
+          "description": "Duration spent in seconds"
+        },
+        "timestamp": {
+          "type": "number",
+          "description": "Unix timestamp in milliseconds"
+        },
+        "isPerfectScore": {
+          "type": "boolean",
+          "description": "Whether user achieved 100%"
+        }
+      },
+      "required": ["id", "userId", "examType", "subject", "mode", "score", "totalQuestions", "timestamp"]
+    },
+    "SpacedItem": {
+      "title": "SpacedItem",
+      "description": "Active recall retention record for a specific question",
+      "type": "object",
+      "properties": {
+        "questionId": {
+          "type": "string",
+          "description": "ID of the past question",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user ID",
+          "maxLength": 128
+        },
+        "subject": {
+          "type": "string",
+          "description": "Subject of the question",
+          "maxLength": 64
+        },
+        "topic": {
+          "type": "string",
+          "description": "Topic of the question",
+          "maxLength": 128
+        },
+        "repetition": {
+          "type": "number",
+          "description": "Number of successful consecutive recalls"
+        },
+        "intervalDays": {
+          "type": "number",
+          "description": "Days until next review"
+        },
+        "easinessFactor": {
+          "type": "number",
+          "description": "Memory easiness multiplier"
+        },
+        "nextReviewTimestamp": {
+          "type": "number",
+          "description": "Timestamp for next due review"
+        },
+        "lastReviewedTimestamp": {
+          "type": "number",
+          "description": "Timestamp of last review"
+        },
+        "reviewCount": {
+          "type": "number",
+          "description": "Total times reviewed"
+        },
+        "correctCount": {
+          "type": "number",
+          "description": "Total times answered correctly"
+        }
+      },
+      "required": ["questionId", "userId", "subject", "repetition", "intervalDays", "nextReviewTimestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile with study streak and exam goals"
+    },
+    "/users/{userId}/quizAttempts/{attemptId}": {
+      "schema": "QuizAttempt",
+      "description": "History of practice and mock exam attempts for a user"
+    },
+    "/users/{userId}/spacedItems/{questionId}": {
+      "schema": "SpacedItem",
+      "description": "Active recall smart memory items tracked per user"
+    }
+  }
+}
