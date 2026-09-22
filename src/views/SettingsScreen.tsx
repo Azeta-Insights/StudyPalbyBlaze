@@ -43,7 +43,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [hapticsEnabled, setHapticsEnabled] = useState(() => SoundService.isHapticsEnabled());
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showProvenance, setShowProvenance] = useState(false);
-  const { user, isSyncing, signIn, signOut, syncNow } = useFirebase();
+  const { user, isSyncing, syncStats, signIn, signOut, syncNow } = useFirebase();
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -181,6 +181,36 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             </button>
           )}
         </div>
+
+        {user ? (
+          <div className="pt-2 border-t border-white/5 grid grid-cols-3 gap-2 text-center">
+            <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
+              <span className="text-[10px] text-slate-400 block font-medium">Status</span>
+              <span className="text-xs font-bold text-emerald-400">
+                {isSyncing ? 'Syncing...' : 'Fully Synced'}
+              </span>
+            </div>
+            <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
+              <span className="text-[10px] text-slate-400 block font-medium">Quizzes</span>
+              <span className="text-xs font-bold text-white">
+                {syncStats.quizCount} saved
+              </span>
+            </div>
+            <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
+              <span className="text-[10px] text-slate-400 block font-medium">Recall Deck</span>
+              <span className="text-xs font-bold text-orange-400">
+                {syncStats.spacedCardCount} cards
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="text-[11px] text-slate-400 bg-slate-800/40 p-2.5 rounded-xl border border-white/5 flex items-center gap-2">
+            <Info className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+            <span>
+              Your study streak and quiz history are saved locally. Connect Google to enable seamless cloud backup and multi-device sync.
+            </span>
+          </div>
+        )}
 
         {authError && (
           <div className="text-[11px] text-rose-400 bg-rose-500/10 p-2 rounded-xl border border-rose-500/20">

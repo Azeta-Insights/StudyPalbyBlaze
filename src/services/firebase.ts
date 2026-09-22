@@ -198,6 +198,38 @@ export async function syncQuizAttemptToFirestore(
   }
 }
 
+export async function fetchQuizAttemptsFromFirestore(
+  uid: string
+): Promise<QuizAttempt[]> {
+  const path = `users/${uid}/quizAttempts`;
+  try {
+    const snap = await getDocs(collection(db, 'users', uid, 'quizAttempts'));
+    const attempts: QuizAttempt[] = [];
+    snap.forEach((docSnap) => {
+      const d = docSnap.data();
+      const rawId = d.id;
+      const numId = typeof rawId === 'string' && rawId.startsWith('attempt_')
+        ? Number(rawId.replace('attempt_', '')) || Date.now()
+        : Number(rawId) || Date.now();
+
+      attempts.push({
+        id: numId,
+        examType: d.examType || 'jamb',
+        subject: d.subject || 'general',
+        mode: d.mode || 'practice',
+        score: Number(d.score) || 0,
+        totalQuestions: Number(d.totalQuestions) || 1,
+        durationSeconds: Number(d.durationSeconds) || 0,
+        timestamp: Number(d.timestamp) || Date.now(),
+        isPerfectScore: Boolean(d.isPerfectScore),
+      });
+    });
+    return attempts.sort((a, b) => b.timestamp - a.timestamp);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+  }
+}
+
 // Sync Spaced Recall Memory Item
 export async function syncSpacedItemToFirestore(
   item: SpacedItem,
@@ -229,6 +261,52 @@ export async function syncSpacedItemToFirestore(
     });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export async function fetchSpacedItemsFromFirestore(
+  uid: string
+): Promise<Record<string, SpacedItem>> {
+  const path = `users/${uid}/spacedItems`;
+  try {
+    const snap = await getDocs(collection(db, 'users', uid, 'spacedItems'));
+    const map: Record<string, SpacedItem> = {};
+    snap.forEach((docSnap) => {
+      const d = docSnap.data();
+      if (d.questionId) {
+        map[d.questionId] = {
+          questionId: d.questionId,
+          subject: d.subject || 'general',
+          topic: d.topic || undefined,
+          repetition: Number(d.repetition) || 0,
+          intervalDays: Number(d.intervalDays) || 0,
+          easinessFactor: Number(d.easinessFactor) || 2.5,
+          nextReviewTimestamp: Number(d.nextReviewTimestamp) || Date.now(),
+          lastReviewedTimestamp: Number(d.lastReviewedTimestamp) || Date.now(),
+          reviewCount: Number(d.reviewCount) || 1,
+          correctCount: Number(d.correctCount) || 0,
+        };
+      }
+    });
+    return map;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+  }
+}
+
+// Upload all local data to Firestore
+export async function uploadLocalToCloud(
+  user: FirebaseUser,
+  streak: UserStreak,
+  attempts: QuizAttempt[],
+  spacedMap: Record<string, SpacedItem>
+): Promise<void> {
+  await syncUserProfileToFirestore(streak, user);
+  for (const attempt of attempts) {
+    await syncQuizAttemptToFirestore(attempt, user);
+  }
+  for (const item of Object.values(spacedMap)) {
+    await syncSpacedItemToFirestore(item, user);
   }
 }
 

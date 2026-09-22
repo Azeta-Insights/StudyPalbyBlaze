@@ -15,4 +15,13 @@
 .cxx
 local.properties
 .env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+serviceAccountKey*.json
+node_modules
+dist
+dist-ssr
 debug.keystore
