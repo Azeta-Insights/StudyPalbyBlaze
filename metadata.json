@@ -1,0 +1,6 @@
+{
+  "name": "StudyPal by Blaze",
+  "description": "Offline-first exam prep app for Nigerian secondary school students preparing for JAMB, WAEC, and NECO with study companion Blaze.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
