@@ -15,8 +15,6 @@ import {
   ChevronDown,
   ChevronUp,
   BookOpen,
-  Cloud,
-  RefreshCw,
   LogOut,
   LogIn,
   User as UserIcon,
@@ -43,7 +41,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   const [hapticsEnabled, setHapticsEnabled] = useState(() => SoundService.isHapticsEnabled());
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showProvenance, setShowProvenance] = useState(false);
-  const { user, isSyncing, syncStats, signIn, signOut, syncNow } = useFirebase();
+  const { user, signIn, signOut } = useFirebase();
   const [authError, setAuthError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
 
@@ -118,64 +116,46 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         <div className="w-8" />
       </div>
 
-      {/* Cloud Account & Backup (Firebase) */}
+      {/* Student Account */}
       <div className="p-4 rounded-2xl glass-card border border-white/10 space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center border border-orange-500/30">
-              <Cloud className="w-4 h-4" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/15 text-orange-400 flex items-center justify-center border border-orange-500/25">
+              <UserIcon className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>Cloud Study Account</span>
-                {user && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Synced
-                  </span>
-                )}
+              <div className="text-sm font-bold text-white">
+                {user ? (user.displayName || 'Signed In') : 'Student Account'}
               </div>
-              <div className="text-[11px] text-slate-400">
+              <div className="text-xs text-slate-400">
                 {user
-                  ? user.email || user.displayName || 'Google Account Connected'
-                  : 'Back up your streaks and scores across devices'}
+                  ? (user.email || 'Progress linked to Google')
+                  : 'Save your study progress and streaks'}
               </div>
             </div>
           </div>
 
           {user ? (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={syncNow}
-                disabled={isSyncing}
-                title="Sync now to cloud"
-                className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition active:scale-95 disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-orange-400' : ''}`} />
-              </button>
-              <button
-                onClick={signOut}
-                title="Sign out"
-                className="p-2 rounded-xl bg-slate-800 text-rose-400 hover:bg-rose-500/20 transition active:scale-95"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <button
+              onClick={signOut}
+              title="Sign out"
+              className="px-3 py-1.5 rounded-xl bg-slate-800 text-rose-400 hover:bg-rose-500/20 text-xs font-semibold transition active:scale-95 flex items-center gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
           ) : (
             <button
               onClick={handleGoogleSignIn}
               disabled={isSigningIn}
-              className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95"
+              className="px-3.5 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:opacity-60 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95"
             >
               {isSigningIn ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Connecting...</span>
-                </>
+                <span>Signing in...</span>
               ) : (
                 <>
                   <LogIn className="w-3.5 h-3.5" />
-                  <span>Connect</span>
+                  <span>Sign In</span>
                 </>
               )}
             </button>
@@ -183,37 +163,19 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </div>
 
         {user ? (
-          <div className="pt-2 border-t border-white/5 grid grid-cols-3 gap-2 text-center">
-            <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
-              <span className="text-[10px] text-slate-400 block font-medium">Status</span>
-              <span className="text-xs font-bold text-emerald-400">
-                {isSyncing ? 'Syncing...' : 'Fully Synced'}
-              </span>
-            </div>
-            <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
-              <span className="text-[10px] text-slate-400 block font-medium">Quizzes</span>
-              <span className="text-xs font-bold text-white">
-                {syncStats.quizCount} saved
-              </span>
-            </div>
-            <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50">
-              <span className="text-[10px] text-slate-400 block font-medium">Recall Deck</span>
-              <span className="text-xs font-bold text-orange-400">
-                {syncStats.spacedCardCount} cards
-              </span>
-            </div>
+          <div className="text-xs text-slate-400 bg-slate-800/40 p-2.5 rounded-xl border border-white/5 flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>Your quiz scores, study streak, and practice tests are saved to your account.</span>
           </div>
         ) : (
-          <div className="text-[11px] text-slate-400 bg-slate-800/40 p-2.5 rounded-xl border border-white/5 flex items-center gap-2">
+          <div className="text-xs text-slate-400 bg-slate-800/40 p-2.5 rounded-xl border border-white/5 flex items-center gap-2">
             <Info className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-            <span>
-              Your study streak and quiz history are saved locally. Connect Google to enable seamless cloud backup and multi-device sync.
-            </span>
+            <span>Sign in with Google to keep your streak and practice history safe if you switch phones or laptops.</span>
           </div>
         )}
 
         {authError && (
-          <div className="text-[11px] text-rose-400 bg-rose-500/10 p-2 rounded-xl border border-rose-500/20">
+          <div className="text-xs text-rose-400 bg-rose-500/10 p-2.5 rounded-xl border border-rose-500/20">
             {authError}
           </div>
         )}
